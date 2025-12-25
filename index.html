@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🏆 FE2 2021 - Current Month Leaderboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Arial', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: rgba(255, 255, 255, 0.98);
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+            padding: 30px;
+            max-width: 700px;
+            width: 100%;
+        }
+        
+        .header {
+            text-align: center;
+            margin-bottom: 25px;
+            padding-bottom: 20px;
+            border-bottom: 3px solid #667eea;
+        }
+        
+        .game-title {
+            color: #764ba2;
+            font-size: 1.8em;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        h1 {
+            color: #333;
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+        
+        .status {
+            color: #666;
+            font-size: 0.9em;
+        }
+        
+        .status.live {
+            color: #22c55e;
+            font-weight: bold;
+        }
+        
+        .leaderboard-header {
+            display: flex;
+            padding: 15px 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-weight: bold;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            font-size: 0.95em;
+        }
+        
+        .col-rank { width: 80px; }
+        .col-player { flex: 1; }
+        .col-xp { width: 140px; text-align: right; }
+        
+        .leaderboard {
+            list-style: none;
+        }
+        
+        .player {
+            background: #f8f9fa;
+            margin: 8px 0;
+            padding: 18px 20px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            transition: transform 0.2s, box-shadow 0.2s;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+            font-size: 1.05em;
+        }
+        
+        .player:hover {
+            transform: translateX(5px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+        }
+        
+        .player.top3 {
+            font-weight: bold;
+        }
+        
+        .player.rank-1 {
+            background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+            border: 2px solid #ff8800;
+            box-shadow: 0 4px 20px rgba(255, 215, 0, 0.4);
+        }
+        
+        .player.rank-2 {
+            background: linear-gradient(135deg, #c0c0c0 0%, #e8e8e8 100%);
+            border: 2px solid #999;
+            box-shadow: 0 4px 20px rgba(192, 192, 192, 0.4);
+        }
+        
+        .player.rank-3 {
+            background: linear-gradient(135deg, #cd7f32 0%, #e6a572 100%);
+            border: 2px solid #8b4513;
+            box-shadow: 0 4px 20px rgba(205, 127, 50, 0.4);
+        }
+        
+        .rank {
+            font-weight: bold;
+            color: #667eea;
+            width: 80px;
+            font-size: 1.1em;
+        }
+        
+        .rank-1 .rank { color: #ff6b00; font-size: 1.3em; }
+        .rank-2 .rank { color: #666; font-size: 1.2em; }
+        .rank-3 .rank { color: #8b4513; font-size: 1.15em; }
+        
+        .player-name {
+            flex: 1;
+            color: #333;
+            font-family: 'Courier New', monospace;
+        }
+        
+        .xp {
+            font-weight: bold;
+            color: #764ba2;
+            width: 140px;
+            text-align: right;
+            font-size: 1.05em;
+        }
+        
+        .rank-1 .xp, .rank-2 .xp, .rank-3 .xp {
+            color: #333;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+            font-size: 1.2em;
+        }
+        
+        .error {
+            text-align: center;
+            padding: 40px;
+            color: #ef4444;
+            font-size: 1.1em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="game-title">🌊 FE2 2021</div>
+            <h1>Current Month Leaderboard</h1>
+            <div class="status" id="status">Connecting...</div>
+        </div>
+        
+        <div class="leaderboard-header">
+            <div class="col-rank">RANK</div>
+            <div class="col-player">PLAYER</div>
+            <div class="col-xp">XP EARNED</div>
+        </div>
+        
+        <ul class="leaderboard" id="leaderboard">
+            <div class="loading">Loading leaderboard...</div>
+        </ul>
+    </div>
+
+    <script>
+        const GITHUB_USER = 'YOUR-USERNAME';
+        const REPO_NAME = 'leaderboard';
+        const DATA_URL = `https://raw.githubusercontent.com/${GITHUB_USER}/${REPO_NAME}/main/leaderboard.json`;
+        
+        const leaderboardEl = document.getElementById('leaderboard');
+        const statusEl = document.getElementById('status');
+        
+        function getRankSuffix(rank) {
+            const suffixes = {
+                1: 'ST', 2: 'ND', 3: 'RD', 4: 'TH', 5: 'TH',
+                6: 'TH', 7: 'TH', 8: 'TH', 9: 'TH', 10: 'TH',
+                11: 'TH', 12: 'TH', 13: 'TH', 14: 'TH', 15: 'TH',
+                16: 'TH', 17: 'TH', 18: 'TH', 19: 'TH', 20: 'TH'
+            };
+            return suffixes[rank] || 'TH';
+        }
+        
+        function formatXP(xp) {
+            return xp.toLocaleString();
+        }
+        
+        function updateLeaderboard() {
+            fetch(DATA_URL + '?t=' + new Date().getTime())
+                .then(response => {
+                    if (!response.ok) throw new Error('Failed to fetch data');
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.length === 0) {
+                        leaderboardEl.innerHTML = '<div class="loading">No data yet...</div>';
+                        return;
+                    }
+                    
+                    const top20 = data.slice(0, 20);
+                    
+                    leaderboardEl.innerHTML = top20.map(player => {
+                        const rankClass = player.rank <= 3 ? `rank-${player.rank} top3` : '';
+                        const rankText = `${player.rank}${getRankSuffix(player.rank)}`;
+                        
+                        return `
+                            <li class="player ${rankClass}">
+                                <div class="rank">${rankText}</div>
+                                <div class="player-name">${player.player}</div>
+                                <div class="xp">${formatXP(player.xp)}</div>
+                            </li>
+                        `;
+                    }).join('');
+                    
+                    const now = new Date().toLocaleTimeString();
+                    statusEl.textContent = `✅ Live - Updated: ${now}`;
+                    statusEl.className = 'status live';
+                })
+                .catch(error => {
+                    leaderboardEl.innerHTML = `
+                        <div class="error">
+                            ❌ Connection Error<br>
+                            <small>${error.message}</small>
+                        </div>
+                    `;
+                    statusEl.textContent = '❌ Cannot load data';
+                    statusEl.className = 'status';
+                });
+        }
+        
+        updateLeaderboard();
+        setInterval(updateLeaderboard, 1000);
+    </script>
+</body>
+</html>
